@@ -5,6 +5,8 @@ package imad_elkholti.youtube_downloader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Hashtable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -31,6 +33,7 @@ import android.widget.Toast;
 
 public class YT_Downloader extends Activity {
 	private String api_url = "http://yt.coding-labs.com/ytAPI.php?isAPI=1&url=";
+	private String url_base = "https://www.youtube.com/get_video_info?video_id=";
 	Log i;
 	private Toast toastMesage;
 	Hashtable<Integer,String> btns_urls=new Hashtable<Integer,String>();
@@ -73,9 +76,30 @@ public class YT_Downloader extends Activity {
 		NetworkOperation ntw = new NetworkOperation();
 		ntw.setAct(this);
 		ntw.task =3 ;
-		ntw.YT_url=api_url+url;
+		//String[] result = s.split("v=");
+		String vid = getVID(url) ;
+		if(vid=="") return "";
+		ntw.YT_url=url_base+vid;
 		ntw.execute();
 		return ntw.output;
+	}
+	private String getVID(String url){
+		try {
+			Pattern p  = Pattern.compile("watch\\?v=([^\\s&]+)");
+			Pattern p2 = Pattern.compile("youtube\\.[^\\/]+\\/([^&\\/\\s^?]+)\\/?");
+			Matcher m = p.matcher(url);
+			Matcher m2 = p2.matcher(url);
+			String VID = ""; 
+			if(m.find())
+				VID = m.group(1) ;
+			else if(m2.find())
+				VID = m2.group(1) ;
+			else VID = "";
+			return VID;
+		} catch (Exception e) {
+			return "" ;
+		}
+
 	}
 	public void setImg(Bitmap img,String title) {
 		//BitmapDrawable ob = new BitmapDrawable(bitmap);

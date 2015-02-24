@@ -10,7 +10,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,6 +46,7 @@ class NetworkOperation extends AsyncTask<Void, Void, String> {
 	
 	public String YT_url;
 	public String output;
+	private Map<Integer, Object> output_obj  =  new HashMap<Integer, Object>() ;;
 	private YT_Downloader YT;
 	private String params;
 	public int task = 1;
@@ -106,8 +110,35 @@ class NetworkOperation extends AsyncTask<Void, Void, String> {
 	public String getOutPut() {
 		return output;
 	}
-	
 	public void onPostExecute(String msg) {
+		JSONArray Object = null;
+		try {
+			this.output_obj = main_trt(this.output);
+			//Object = new JSONArray(output);
+			JSONObject infos = Object.getJSONObject(0);
+			//JSONObject det = Object.getJSONObject(1);
+			String title = (String) ((Map<Integer, Object>) this.output_obj.get(0)).get("title");
+			String img_url = (String) ((Map<Integer, Object>) this.output_obj.get(0)).get("iurlmq");
+			YT.title = title;
+			((TextView)YT.findViewById(R.id.title)).setText(title);
+			JSONArray links = (JSONArray) this.output_obj.get(1);
+			for ( int i = 0; i < links.length() ; i++)
+			{
+				JSONObject object = links.getJSONObject(i);
+				YT.i.i("links",object.getString("type"));
+				String vid_type = object.getString("type") ;
+				String vid_url = object.getString("url") ;
+				YT.addType(vid_url, vid_type, i);
+				
+			}
+			
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	public void onPostExecute_old(String msg) {
 		JSONArray Object = null;
 		try {
 			Object = new JSONArray(output);
@@ -364,6 +395,53 @@ class NetworkOperation extends AsyncTask<Void, Void, String> {
 	    TelephonyManager mngr = (TelephonyManager) YT.getSystemService(YT.TELEPHONY_SERVICE); 
 	    String imei = mngr.getDeviceId();
 	    return imei;
+	}
+	
+	private static Map<Integer, Object>  main_trt(String cnt){
+		//String vid = getVID(url);
+		Map<String, String> parameters = urlParserParameters(cnt);
+		Map<Integer, Object> Results =  new HashMap<Integer, Object>() ;
+		//Results.put(0, Map<String, String>);
+		try {
+			Map<String, String> title_img =  new HashMap<String, String>();
+			Map<Integer, Map<String, String>> qu =  new HashMap<Integer, Map<String, String>>();
+			title_img.put("title", URLDecoder.decode(parameters.get("title"), "UTF-8"));
+			title_img.put("iurlmq", URLDecoder.decode(parameters.get("iurlmq"), "UTF-8"));
+			Results.put(0,title_img);
+			
+			String[] formats = URLDecoder.decode(parameters.get("url_encoded_fmt_stream_map"), "UTF-8").split(",");
+			int i=0;
+			for (String qualities : formats) {
+				Map<String, String> url_infos =  new HashMap<String, String>();
+				Map<String, String> parameters_q = urlParserParameters(cnt);
+				
+				for (Map.Entry<String, String> entry : parameters_q.entrySet()){
+					//entry.getKey() + "/" + entry.getValue()
+					//System.out.println(URLDecoder.decode(URLDecoder.decode(entry.getValue(), "UTF-8"),"UTF-8"));
+					url_infos.put(entry.getKey(), URLDecoder.decode(URLDecoder.decode(entry.getValue(), "UTF-8"),"UTF-8"));
+				}
+				qu.put(i, url_infos);
+				i++;
+			}
+			Results.put(1, qu);
+			//System.out.print(Results.toString());
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return Results;
+	}
+	private static Map<String, String> urlParserParameters(String cnt){
+		Map<String, String> parameters = new HashMap<String, String>() ;
+		String[] param = cnt.split("&");
+		for (String k_v : param) {
+			if(k_v.split("=").length != 2) continue ;
+			String k = k_v.split("=")[0];
+			String v = k_v.split("=")[1];
+			parameters.put(k, v);
+		}
+		return parameters;
 	}
 
 }
